@@ -28,8 +28,15 @@ static void oid_init() {
     }
     __index = math_random(0, 0xffffff);
     uint8_t i = 0;
-    while (i < 10) decode_lookup[0x30 + i] = i++;
-    while (i < 16) decode_lookup[0x41 - 10 + i] = decode_lookup[0x61 - 10 + i] = i++;
+    while (i < 10) {
+      decode_lookup[0x30 + i] = i;
+      i++;
+    }
+    while (i < 16) {
+      decode_lookup[0x61 - 10 + i] = i;
+      decode_lookup[0x41 - 10 + i] = decode_lookup[0x61 - 10 + i];
+      i++;
+    }
 
     for (uint8_t i = 0; i < 16; i++) {
       for (uint8_t j = 0; j < 16; j++) {
