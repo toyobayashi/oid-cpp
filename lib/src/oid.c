@@ -71,8 +71,18 @@ int oid_equals_buf(const object_id* oid, const uint8_t* buf, uint32_t len) {
 
   if (len == 24) {
     char hex[25];
+    char lower[25];
+    for (uint8_t i = 0; i < 24; i++) {
+      char c = buf[i];
+      if (c >= 'A' && c <= 'Z') {
+        lower[i] = (c | 0x20);
+      } else {
+        lower[i] = c;
+      }
+    }
+    lower[24] = 0;
     oid_to_hex_string(oid, hex);
-    return (strcmp(hex, buf) == 0);
+    return (strcmp(hex, lower) == 0);
   }
 
   return 0;
