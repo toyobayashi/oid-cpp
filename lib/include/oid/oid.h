@@ -12,18 +12,19 @@ extern "C" {
   } object_id;
 
   int oid_construct(object_id* oid);
-  int oid_construct_with_time(object_id* oid, uint64_t time);
+  int oid_construct_with_time(object_id* oid, uint32_t time);
   int oid_construct_with_buf(object_id* oid, const uint8_t* buf, uint32_t len);
   int oid_construct_with_oid(object_id* oid, const object_id* other);
 
-  int oid_generate(uint64_t time, uint8_t* id);
+  int oid_generate(uint32_t time, uint8_t* id);
   int oid_create_from_hex_string(const char* hex_string, object_id* oid);
   int oid_to_hex_string(const object_id* oid, char* res);
+  int oid_is_valid(const char* res);
 
   int oid_equals_buf(const object_id* oid, const uint8_t* buf, uint32_t len);
   int oid_equals_oid(const object_id* oid, const object_id* other);
-  int oid_create_from_time(uint64_t time, object_id* oid);
-  uint64_t oid_get_timestamp(const object_id* oid);
+  int oid_create_from_time(uint32_t time, object_id* oid);
+  uint32_t oid_get_timestamp(const object_id* oid);
 
 #ifdef __cplusplus
 }

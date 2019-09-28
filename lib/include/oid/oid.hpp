@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <ctime>
+#include <iostream>
 #include "oid.h"
 
 class ObjectId {
@@ -14,7 +15,7 @@ public:
   ObjectId();
   ObjectId(const ObjectId&);
   ObjectId(const object_id&);
-  ObjectId(uint64_t);
+  ObjectId(uint32_t);
   ObjectId(const std::vector<uint8_t>&);
   ObjectId(const std::string&);
   ~ObjectId();
@@ -24,17 +25,22 @@ public:
   ObjectId& operator=(const ObjectId&);
   ObjectId& operator=(const object_id&);
 
+  friend std::ostream& operator<<(std::ostream&, const ObjectId&);
+
   static std::vector<uint8_t> generate();
-  static std::vector<uint8_t> generate(uint64_t);
+  static std::vector<uint8_t> generate(uint32_t);
   static ObjectId createFromHexString(const std::string&);
-  static ObjectId createFromTime(uint64_t);
+  static ObjectId createFromTime(uint32_t);
+
+  static bool isValid(const std::vector<uint8_t>&);
+  static bool isValid(const std::string&);
 
   std::string toHexString() const;
   bool equals(const std::string&) const;
   bool equals(const ObjectId&) const;
   bool equals(const std::vector<uint8_t>&) const;
 
-  uint64_t getTimestamp() const;
+  uint32_t getTimestamp() const;
 };
 
 ObjectId::operator object_id*() {
@@ -79,7 +85,7 @@ ObjectId::ObjectId(const ObjectId& other) {
   oid_construct_with_oid(oid, other.oid);
 }
 
-ObjectId::ObjectId(uint64_t time) {
+ObjectId::ObjectId(uint32_t time) {
   oid = new object_id;
   oid_construct_with_time(oid, time);
 }
@@ -94,11 +100,16 @@ ObjectId::ObjectId(const std::string& str) {
   oid_construct_with_buf(oid, (const uint8_t*)str.c_str(), static_cast<uint32_t>(str.length()));
 }
 
-std::vector<uint8_t> ObjectId::generate() {
-  return generate(time(nullptr));
+std::ostream& operator<<(std::ostream& os, const ObjectId& objectId) {
+  os << objectId.toHexString();
+  return os;
 }
 
-std::vector<uint8_t> ObjectId::generate(uint64_t time) {
+std::vector<uint8_t> ObjectId::generate() {
+  return generate(static_cast<uint32_t>(time(nullptr)));
+}
+
+std::vector<uint8_t> ObjectId::generate(uint32_t time) {
   uint8_t buf[12] = { 0 };
   oid_generate(time, buf);
   return std::vector<uint8_t>(buf, buf + 12);
@@ -110,10 +121,19 @@ ObjectId ObjectId::createFromHexString(const std::string& hex) {
   return coid;
 }
 
-ObjectId ObjectId::createFromTime(uint64_t time) {
+ObjectId ObjectId::createFromTime(uint32_t time) {
   object_id coid;
   oid_create_from_time(time, &coid);
   return coid;
+}
+
+bool ObjectId::isValid(const std::vector<uint8_t>& buf) {
+  uint64_t len = buf.size();
+  return (len == 12 || len == 24);
+}
+
+bool ObjectId::isValid(const std::string& str) {
+  return oid_is_valid(str.c_str());
 }
 
 std::string ObjectId::toHexString() const {
@@ -134,7 +154,7 @@ bool ObjectId::equals(const ObjectId& objectId) const {
   return static_cast<bool>(oid_equals_oid(oid, objectId.oid));
 }
 
-uint64_t ObjectId::getTimestamp() const {
+uint32_t ObjectId::getTimestamp() const {
   return oid_get_timestamp(oid);
 }
 

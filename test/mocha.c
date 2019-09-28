@@ -127,7 +127,7 @@ int __describe(const char * description, const char * testCaseNames, TestCase te
             pass++;
 
             setFontStyle(GREEN);
-            printf("    √ ");
+            printf("    %s ", "\xe2\x88\x9a");
             setFontStyle(DARK_GRAY);
             index = printTestName(testCaseNames, index);
             setFontStyle(YELLOW);

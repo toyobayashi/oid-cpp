@@ -12,21 +12,21 @@ static char hex_table[256][3];
 
 static const char hex[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
-static int32_t math_random(int32_t left, int32_t right) {
-  return rand() % (right - left + 1) + left;
-}
-
-static uint32_t oid_get_inc() {
-  return (__index = (__index + 1) % 0xffffff);
+static double math_random() {
+  int r = rand();
+  if (r == RAND_MAX) {
+    r -= 1;
+  }
+  return (double)r / RAND_MAX;
 }
 
 static void oid_init() {
   if (!initialized) {
-    srand((unsigned)time(NULL));
+    srand((unsigned int)time(NULL));
     for (uint8_t i = 0; i < 5; i++) {
-      PROCESS_UNIQUE[i] = math_random(0, 255);
+      PROCESS_UNIQUE[i] = (uint8_t)(math_random() * 256);
     }
-    __index = math_random(0, 0xffffff);
+    __index = (uint32_t)(math_random() * 0xffffff);
     uint8_t i = 0;
     while (i < 10) {
       decode_lookup[0x30 + i] = i;
@@ -49,8 +49,14 @@ static void oid_init() {
   }
 }
 
-int oid_create_from_time(uint64_t time, object_id* oid) {
+static uint32_t oid_get_inc() {
+  oid_init();
+  return (__index = (__index + 1) % 0xffffff);
+}
+
+int oid_create_from_time(uint32_t time, object_id* oid) {
   uint8_t buf[12] = { 0 };
+  if (oid == NULL) return -1;
   buf[3] = time & 0xff;
   buf[2] = (time >> 8) & 0xff;
   buf[1] = (time >> 16) & 0xff;
@@ -58,15 +64,18 @@ int oid_create_from_time(uint64_t time, object_id* oid) {
   return oid_construct_with_buf(oid, buf, 12);
 }
 
-uint64_t oid_get_timestamp(const object_id* oid) {
-  uint64_t first = oid->id[0];
-  uint64_t last = oid->id[3];
-  uint64_t res = 0;
-  res = (first << 24) | ((uint64_t)oid->id[1] << 16) | ((uint64_t)oid->id[2] << 8) | last;
+uint32_t oid_get_timestamp(const object_id* oid) {
+  if (oid == NULL) return 0;
+  uint32_t first = oid->id[0];
+  uint32_t last = oid->id[3];
+  uint32_t res = 0;
+  res = (first << 24) | ((uint32_t)oid->id[1] << 16) | ((uint32_t)oid->id[2] << 8) | last;
   return res;
 }
 
 int oid_equals_buf(const object_id* oid, const uint8_t* buf, uint32_t len) {
+  if (oid == NULL || buf == NULL) return -1;
+
   if (len == 12) {
     for (uint8_t i = 0; i < 12; i++) {
       if (oid->id[i] != buf[i]) {
@@ -96,24 +105,28 @@ int oid_equals_buf(const object_id* oid, const uint8_t* buf, uint32_t len) {
 }
 
 int oid_equals_oid(const object_id* oid, const object_id* other) {
-  return oid_equals_buf(oid, oid->id, 12);
+  if (other == NULL) return -1;
+  return oid_equals_buf(oid, other->id, 12);
 }
 
 int oid_construct(object_id* oid) {
-  return oid_construct_with_time(oid, time(NULL));
+  return oid_construct_with_time(oid, (uint32_t)time(NULL));
 }
 
-int oid_construct_with_time(object_id* oid, uint64_t time) {
+int oid_construct_with_time(object_id* oid, uint32_t time) {
+  if (oid == NULL) return -1;
   oid_init();
   return oid_generate(time, oid->id);
 }
 
 int oid_construct_with_buf(object_id* oid, const uint8_t* buf, uint32_t len) {
+  if (oid == NULL) return -1;
+
   if (len == 24) {
     return oid_create_from_hex_string((const char*)buf, oid);
   }
 
-  if (len == 12) {
+  if (len == 12 && buf != NULL) {
     for (uint8_t i = 0; i < len; i++) {
       oid->id[i] = buf[i];
     }
@@ -127,6 +140,7 @@ int oid_construct_with_buf(object_id* oid, const uint8_t* buf, uint32_t len) {
 }
 
 int oid_create_from_hex_string(const char* hex_string, object_id* oid) {
+  if (hex_string == NULL || oid == NULL) return -1;
   uint8_t buf[12];
   uint8_t n = 0;
   uint8_t i = 0;
@@ -139,10 +153,12 @@ int oid_create_from_hex_string(const char* hex_string, object_id* oid) {
 }
 
 int oid_construct_with_oid(object_id* oid, const object_id* other) {
+  if (other == NULL) return -1;
   return oid_construct_with_buf(oid, other->id, 12);
 }
 
-int oid_generate(uint64_t time, uint8_t* id) {
+int oid_generate(uint32_t time, uint8_t* id) {
+  if (id == NULL) return -1;
   oid_init();
   uint32_t inc = oid_get_inc();
 
@@ -168,6 +184,7 @@ int oid_generate(uint64_t time, uint8_t* id) {
 }
 
 int oid_to_hex_string(const object_id* oid, char* res) {
+  if (oid == NULL || res == NULL) return -1;
   uint8_t i;
   for (i = 0; i < 12; i++) {
     res[i * 2] = hex_table[oid->id[i]][0];
@@ -175,4 +192,10 @@ int oid_to_hex_string(const object_id* oid, char* res) {
   }
   res[i * 2] = '\0';
   return 0;
+}
+
+int oid_is_valid(const char* str) {
+  if (str == NULL) return 0;
+  uint64_t len = strlen(str);
+  return len == 12 || len == 24 ? 1 : 0;
 }
